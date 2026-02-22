@@ -1,0 +1,1141 @@
+// ============================================================================
+// InsureConsultec — Prisma Schema v2
+// PostgreSQL 16 | Prisma 6
+// Sprint 0.2 — Full business model
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  super_admin
+  fsp_owner
+  key_individual
+  compliance_officer
+  agent
+  assistant
+}
+
+enum FspCategory {
+  I
+  II
+  IIA
+  III
+  IV
+}
+
+enum TenantStatus {
+  trialing
+  active
+  suspended
+  cancelled
+}
+
+enum AgentStatus {
+  recruiting
+  background_checks
+  training
+  re5_pending
+  re5_passed
+  appointing
+  supervised
+  active
+  resigned
+  debarred
+  transferred
+}
+
+enum ClientIdType {
+  rsa_id
+  passport
+  asylum_permit
+}
+
+enum EmploymentStatus {
+  employed
+  self_employed
+  unemployed
+  pensioner
+  student
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  fna_scheduled
+  quoted
+  proposal_submitted
+  awaiting_decision
+  won
+  lost
+  dormant
+}
+
+enum LeadSource {
+  referral
+  cold_call
+  networking
+  social_media
+  insurer_lead
+  aggregator
+  walk_in
+  bancassurance
+  website
+  existing_client
+  other
+}
+
+enum ProductCategory {
+  life
+  disability_lump
+  income_protection
+  critical_illness
+  funeral
+  short_term_personal
+  short_term_commercial
+  medical_aid
+  gap_cover
+  retrenchment
+  investment
+  key_person
+}
+
+enum PolicyStatus {
+  draft
+  submitted
+  underwriting
+  active
+  amended
+  lapsed
+  reinstated
+  cancelled
+}
+
+enum PremiumFrequency {
+  monthly
+  quarterly
+  bi_annual
+  annual
+  once_off
+}
+
+enum CollectionMethod {
+  debit_order
+  eft
+  stop_order
+  credit_card
+  cash
+}
+
+enum QuoteStatus {
+  draft
+  presented
+  accepted
+  declined
+  expired
+}
+
+enum RoaStatus {
+  draft
+  complete
+  signed_client
+  signed_agent
+  filed
+}
+
+enum FicaStatus {
+  pending
+  in_progress
+  verified
+  enhanced_due_diligence
+  failed
+}
+
+enum FicaRiskRating {
+  standard
+  high
+}
+
+enum ClaimType {
+  death
+  disability
+  retrenchment
+  critical_illness
+  vehicle
+  property
+  contents
+  funeral
+  liability
+  marine
+  other
+}
+
+enum ClaimStatus {
+  filed
+  documents_pending
+  under_assessment
+  approved
+  paid
+  repudiated
+  ombud_escalated
+  ombud_determination
+  withdrawn
+}
+
+enum CommissionType {
+  initial
+  renewal
+  binder_fee
+  broker_fee
+  override
+  clawback
+  other
+}
+
+enum DocumentCategory {
+  roa
+  rpar
+  fica_id
+  fica_poa
+  consent
+  cpd_cert
+  re5_cert
+  re1_cert
+  saps_clearance
+  qualification
+  appointment_letter
+  fsca_licence
+  claim_document
+  policy_schedule
+  complaint
+  other
+}
+
+enum AccountType {
+  asset
+  liability
+  equity
+  revenue
+  expense
+}
+
+enum VatCategory {
+  standard_rated
+  zero_rated
+  exempt
+  outside_scope
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  partially_paid
+  paid
+  overdue
+  voided
+  credit_note
+}
+
+enum ExpenseStatus {
+  draft
+  submitted
+  approved
+  rejected
+  paid
+}
+
+enum CrmActivityType {
+  call
+  email
+  meeting
+  note
+  sms
+  whatsapp
+  task
+}
+
+enum NotificationChannel {
+  email
+  sms
+  in_app
+}
+
+// ─── Core — Tenants & Users ──────────────────────────────────────────────────
+
+model Tenant {
+  id   String @id @default(uuid()) @db.Uuid
+  slug String @unique @db.VarChar(50)
+
+  // FSCA details
+  name              String      @db.VarChar(200)
+  tradingName       String?     @map("trading_name") @db.VarChar(200)
+  fscaLicenceNumber String?     @map("fsca_licence_number") @db.VarChar(50)
+  fspCategory       FspCategory @default(I) @map("fsp_category")
+  registrationNumber String?    @map("registration_number") @db.VarChar(20)
+  vatNumber         String?     @map("vat_number") @db.VarChar(10)
+  licenceExpiresAt  DateTime?   @map("licence_expires_at") @db.Timestamptz
+
+  // Contact
+  phone          String? @db.VarChar(20)
+  email          String  @db.VarChar(255)
+  website        String? @db.VarChar(255)
+  physicalAddress String? @map("physical_address")
+  postalAddress  String? @map("postal_address")
+
+  // Branding
+  logoUrl     String? @map("logo_url")
+  brandColour String? @map("brand_colour") @db.VarChar(7)
+
+  // Billing
+  stripeCustomerId String? @map("stripe_customer_id") @db.VarChar(100)
+  subscriptionStatus String @default("trialing") @map("subscription_status") @db.VarChar(30)
+  subscriptionPlan   String @default("starter")  @map("subscription_plan")   @db.VarChar(30)
+  subscriptionExpires DateTime? @map("subscription_expires") @db.Timestamptz
+
+  // Status
+  status              TenantStatus @default(trialing)
+  onboardingCompleted Boolean      @default(false) @map("onboarding_completed")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  users        User[]
+  agents       Agent[]
+  clients      Client[]
+  leads        Lead[]
+  policies     Policy[]
+  quotes       Quote[]
+  roas         Roa[]
+  claims       Claim[]
+  documents    Document[]
+  commissions  CommissionRecord[]
+  accounts     Account[]
+  invoices     Invoice[]
+  auditLogs    AuditLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id       String   @id @default(uuid()) @db.Uuid
+  tenantId String   @map("tenant_id") @db.Uuid
+  email    String   @db.VarChar(255)
+
+  passwordHash  String?  @map("password_hash") @db.VarChar(255)
+  firstName     String   @map("first_name") @db.VarChar(100)
+  lastName      String   @map("last_name") @db.VarChar(100)
+  role          UserRole
+  phone         String?  @db.VarChar(20)
+  avatarUrl     String?  @map("avatar_url")
+
+  // Status
+  isActive       Boolean  @default(true)  @map("is_active")
+  emailVerified  Boolean  @default(false) @map("email_verified")
+  emailVerifyToken String? @map("email_verify_token") @db.VarChar(128)
+  lastLoginAt    DateTime? @map("last_login_at") @db.Timestamptz
+
+  // Password reset
+  passwordResetToken  String?   @map("password_reset_token")  @db.VarChar(128)
+  passwordResetExpiry DateTime? @map("password_reset_expiry") @db.Timestamptz
+
+  // Invite
+  invitedBy String?   @map("invited_by") @db.Uuid
+  invitedAt DateTime? @map("invited_at") @db.Timestamptz
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  refreshTokens RefreshToken[]
+  agentProfile  Agent?
+  inviter       User?          @relation("UserInvites", fields: [invitedBy], references: [id])
+  invitees      User[]         @relation("UserInvites")
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  tokenHash String    @map("token_hash") @db.VarChar(128)
+  userAgent String?   @map("user_agent") @db.VarChar(500)
+  ipAddress String?   @map("ip_address") @db.VarChar(45)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  actorId   String?  @map("actor_id") @db.Uuid
+  action    String   @db.VarChar(10)
+  tableName String   @map("table_name") @db.VarChar(100)
+  recordId  String   @map("record_id") @db.Uuid
+  oldValue  Json?    @map("old_value")
+  newValue  Json?    @map("new_value")
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, tableName, recordId])
+  @@index([tenantId, occurredAt])
+  @@map("audit_logs")
+}
+
+// ─── Agents ─────────────────────────────────────────────────────────────────
+
+model Agent {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  userId   String @unique @map("user_id") @db.Uuid
+
+  idNumber        String?   @map("id_number") @db.VarChar(13)
+  dateOfBirth     DateTime? @map("date_of_birth") @db.Date
+  gender          String?   @db.VarChar(20)
+  physicalAddress String?   @map("physical_address")
+  postalAddress   String?   @map("postal_address")
+
+  // FAIS Fit & Proper
+  nqfLevel                 Int?    @map("nqf_level")
+  qualificationDescription String? @map("qualification_description")
+  qualificationInstitution String? @map("qualification_institution")
+
+  // RE Exams
+  re5Passed   Boolean   @default(false) @map("re5_passed")
+  re5PassDate DateTime? @map("re5_pass_date") @db.Date
+  re1Required Boolean   @default(false) @map("re1_required")
+  re1Passed   Boolean   @default(false) @map("re1_passed")
+  re1PassDate DateTime? @map("re1_pass_date") @db.Date
+
+  // Background checks
+  debarmentCheckDate DateTime? @map("debarment_check_date") @db.Date
+  debarmentStatus    String    @default("not_checked") @map("debarment_status") @db.VarChar(30)
+  sapsCheckDate      DateTime? @map("saps_check_date") @db.Date
+  sapsCheckExpiry    DateTime? @map("saps_check_expiry") @db.Date
+  creditCheckDate    DateTime? @map("credit_check_date") @db.Date
+  creditCheckOutcome String?   @map("credit_check_outcome") @db.VarChar(50)
+
+  // Appointment
+  status              AgentStatus @default(recruiting)
+  appointmentDate     DateTime?   @map("appointment_date") @db.Date
+  appointingFspNumber String?     @map("appointing_fsp_number") @db.VarChar(50)
+  authorisedProducts  String[]    @map("authorised_products") @default([])
+
+  // Supervision
+  supervisedPeriodMonths Int?      @default(12) @map("supervised_period_months")
+  supervisorId           String?   @map("supervisor_id") @db.Uuid
+  supervisionEndDate     DateTime? @map("supervision_end_date") @db.Date
+  roaReviewsCompleted    Int       @default(0) @map("roa_reviews_completed")
+
+  // CPD
+  cpdTargetHours Decimal   @default(6.0) @map("cpd_target_hours") @db.Decimal(5, 1)
+  cpdYearStart   DateTime? @map("cpd_year_start") @db.Date
+
+  // Debarment process
+  debarmentInitiatedAt   DateTime? @map("debarment_initiated_at") @db.Timestamptz
+  debarmentReason        String?   @map("debarment_reason")
+  debarmentEffectiveDate DateTime? @map("debarment_effective_date") @db.Date
+
+  createdBy String    @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  supervisor   Agent?        @relation("AgentSupervisor", fields: [supervisorId], references: [id])
+  supervisees  Agent[]       @relation("AgentSupervisor")
+  cpdActivities CpdActivity[]
+  clients      Client[]
+  leads        Lead[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("agents")
+}
+
+model CpdActivity {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  agentId  String @map("agent_id") @db.Uuid
+
+  activityDate DateTime @map("activity_date") @db.Date
+  activityType String   @map("activity_type") @db.VarChar(50)
+  provider     String   @db.VarChar(200)
+  description  String
+  hours        Decimal  @db.Decimal(4, 1)
+  cpdYear      Int      @map("cpd_year")
+
+  certificateDocumentId String?   @map("certificate_document_id") @db.Uuid
+  verified    Boolean   @default(false)
+  verifiedBy  String?   @map("verified_by") @db.Uuid
+  verifiedAt  DateTime? @map("verified_at") @db.Timestamptz
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  agent Agent @relation(fields: [agentId], references: [id])
+
+  @@index([tenantId, agentId, cpdYear])
+  @@map("cpd_activities")
+}
+
+// ─── Clients ─────────────────────────────────────────────────────────────────
+
+model Client {
+  id       String  @id @default(uuid()) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  agentId  String? @map("agent_id") @db.Uuid
+
+  // Identity
+  idType          ClientIdType @default(rsa_id) @map("id_type")
+  idNumber        String?   @map("id_number") @db.VarChar(13)
+  passportNumber  String?   @map("passport_number") @db.VarChar(30)
+  passportCountry String?   @map("passport_country") @db.VarChar(2)
+  firstName       String    @map("first_name") @db.VarChar(100)
+  lastName        String    @map("last_name") @db.VarChar(100)
+  preferredName   String?   @map("preferred_name") @db.VarChar(100)
+  titleSalutation String?   @map("title_salutation") @db.VarChar(20)
+  dateOfBirth     DateTime? @map("date_of_birth") @db.Date
+  gender          String?   @db.VarChar(20)
+  maritalStatus   String?   @map("marital_status") @db.VarChar(30)
+  nationality     String    @default("ZA") @db.VarChar(2)
+  homeLanguage    String?   @map("home_language") @db.VarChar(30)
+
+  // Contact
+  mobilePhone String? @map("mobile_phone") @db.VarChar(20)
+  workPhone   String? @map("work_phone") @db.VarChar(20)
+  homePhone   String? @map("home_phone") @db.VarChar(20)
+  email       String? @db.VarChar(255)
+
+  // Physical address
+  physicalAddressLine1 String? @map("physical_address_line1")
+  physicalAddressLine2 String? @map("physical_address_line2")
+  physicalCity         String? @map("physical_city") @db.VarChar(100)
+  physicalProvince     String? @map("physical_province") @db.VarChar(50)
+  physicalPostalCode   String? @map("physical_postal_code") @db.VarChar(10)
+
+  // Postal address
+  postalSameAsPhysical Boolean @default(true) @map("postal_same_as_physical")
+  postalAddressLine1   String? @map("postal_address_line1")
+  postalAddressLine2   String? @map("postal_address_line2")
+  postalCity           String? @map("postal_city") @db.VarChar(100)
+  postalProvince       String? @map("postal_province") @db.VarChar(50)
+  postalPostalCode     String? @map("postal_postal_code") @db.VarChar(10)
+
+  // Employment
+  employmentStatus   EmploymentStatus? @map("employment_status")
+  employerName       String?  @map("employer_name") @db.VarChar(200)
+  occupation         String?  @db.VarChar(100)
+  industry           String?  @db.VarChar(100)
+  monthlyGrossIncome Decimal? @map("monthly_gross_income") @db.Decimal(15, 2)
+  monthlyNetIncome   Decimal? @map("monthly_net_income") @db.Decimal(15, 2)
+
+  // POPIA consent
+  marketingConsent          Boolean   @default(false) @map("marketing_consent")
+  marketingConsentAt        DateTime? @map("marketing_consent_at") @db.Timestamptz
+  dataProcessingConsent     Boolean   @default(false) @map("data_processing_consent")
+  dataProcessingConsentAt   DateTime? @map("data_processing_consent_at") @db.Timestamptz
+  consentVersion            String?   @map("consent_version") @db.VarChar(20)
+
+  // Risk profile
+  riskProfile     String?   @map("risk_profile") @db.VarChar(20)
+  riskProfileDate DateTime? @map("risk_profile_date") @db.Date
+
+  // FICA
+  ficaStatus       FicaStatus     @default(pending) @map("fica_status")
+  ficaRiskRating   FicaRiskRating @default(standard) @map("fica_risk_rating")
+  ficaVerifiedAt   DateTime?      @map("fica_verified_at") @db.Timestamptz
+  ficaExpiresAt    DateTime?      @map("fica_expires_at") @db.Timestamptz
+  ficaVerifiedById String?        @map("fica_verified_by_id") @db.Uuid
+
+  // Origin
+  leadId      String?   @map("lead_id") @db.Uuid
+  clientSince DateTime? @map("client_since") @db.Date
+
+  createdBy String    @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  agent         Agent?        @relation(fields: [agentId], references: [id])
+  dependants    Dependant[]
+  policies      Policy[]
+  quotes        Quote[]
+  leads         Lead[]        @relation("ClientLeads")
+  roas          Roa[]
+  claims        Claim[]
+  documents     Document[]
+  crmActivities CrmActivity[]
+
+  @@index([tenantId])
+  @@index([tenantId, agentId])
+  @@index([tenantId, ficaStatus])
+  @@map("clients")
+}
+
+model Dependant {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+
+  relationship String    @db.VarChar(50)
+  firstName    String    @map("first_name") @db.VarChar(100)
+  lastName     String    @map("last_name") @db.VarChar(100)
+  dateOfBirth  DateTime? @map("date_of_birth") @db.Date
+  idNumber     String?   @map("id_number") @db.VarChar(13)
+  gender       String?   @db.VarChar(20)
+  isDependent  Boolean   @default(true) @map("is_dependent")
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("dependants")
+}
+
+// ─── Leads ───────────────────────────────────────────────────────────────────
+
+model Lead {
+  id       String  @id @default(uuid()) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  agentId  String? @map("agent_id") @db.Uuid
+  clientId String? @map("client_id") @db.Uuid
+
+  firstName    String  @map("first_name") @db.VarChar(100)
+  lastName     String  @map("last_name") @db.VarChar(100)
+  email        String? @db.VarChar(255)
+  phone        String? @db.VarChar(20)
+  company      String? @db.VarChar(200)
+
+  status   LeadStatus @default(new)
+  source   LeadSource @default(other)
+  sourceDetail String? @map("source_detail") @db.VarChar(200)
+  productInterests String[] @map("product_interests") @default([])
+
+  convertedAt   DateTime? @map("converted_at") @db.Timestamptz
+  convertedById String?   @map("converted_by_id") @db.Uuid
+  nextFollowUpAt DateTime? @map("next_follow_up_at") @db.Timestamptz
+  lostReason    String?   @map("lost_reason")
+
+  createdBy String    @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  agent       Agent?        @relation(fields: [agentId], references: [id])
+  client      Client?       @relation("ClientLeads", fields: [clientId], references: [id])
+  activities  LeadActivity[]
+  crmActivities CrmActivity[]
+
+  @@index([tenantId])
+  @@index([tenantId, agentId, status])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id       String @id @default(uuid()) @db.Uuid
+  leadId   String @map("lead_id") @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+
+  activityType CrmActivityType @map("activity_type")
+  note         String
+  outcome      String? @db.VarChar(200)
+  durationMins Int?    @map("duration_mins")
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("lead_activities")
+}
+
+// ─── Needs Analysis & Quotes ─────────────────────────────────────────────────
+
+model NeedsAnalysis {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+  agentId  String @map("agent_id") @db.Uuid
+
+  monthlyGrossIncome Decimal @map("monthly_gross_income") @db.Decimal(15, 2)
+  monthlyNetIncome   Decimal @map("monthly_net_income") @db.Decimal(15, 2)
+  totalAssets        Decimal @default(0) @map("total_assets") @db.Decimal(15, 2)
+  totalLiabilities   Decimal @default(0) @map("total_liabilities") @db.Decimal(15, 2)
+  monthlyExpenses    Decimal @map("monthly_expenses") @db.Decimal(15, 2)
+
+  insuranceObjectives String[] @map("insurance_objectives") @default([])
+  riskTolerance       String   @map("risk_tolerance") @db.VarChar(20)
+  healthStatus        String   @map("health_status") @db.VarChar(20)
+  smoker              Boolean  @default(false)
+  chronicConditions   String[] @map("chronic_conditions") @default([])
+
+  existingLifeCover        Decimal @default(0) @map("existing_life_cover") @db.Decimal(15, 2)
+  existingIncomeProtection Decimal @default(0) @map("existing_income_protection") @db.Decimal(15, 2)
+  existingFuneralCover     Decimal @default(0) @map("existing_funeral_cover") @db.Decimal(15, 2)
+  existingDisabilityCover  Decimal @default(0) @map("existing_disability_cover") @db.Decimal(15, 2)
+
+  gapAnalysisNotes  String? @map("gap_analysis_notes")
+  recommendedCover  Json?   @map("recommended_cover")
+
+  completedAt DateTime? @map("completed_at") @db.Timestamptz
+  pdfUrl      String?   @map("pdf_url")
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  quotes Quote[]
+
+  @@index([tenantId, clientId])
+  @@map("needs_analyses")
+}
+
+model Quote {
+  id       String  @id @default(uuid()) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  clientId String  @map("client_id") @db.Uuid
+  agentId  String  @map("agent_id") @db.Uuid
+  fnaId    String? @map("fna_id") @db.Uuid
+
+  quoteNumber     String          @map("quote_number") @db.VarChar(30)
+  status          QuoteStatus     @default(draft)
+  insurerName     String          @map("insurer_name") @db.VarChar(200)
+  productCategory ProductCategory @map("product_category")
+  productName     String          @map("product_name") @db.VarChar(200)
+  coverAmount     Decimal         @map("cover_amount") @db.Decimal(15, 2)
+  monthlyPremium  Decimal         @map("monthly_premium") @db.Decimal(15, 2)
+  premiumFrequency PremiumFrequency @default(monthly) @map("premium_frequency")
+  escalationRate  Decimal?        @map("escalation_rate") @db.Decimal(5, 4)
+
+  loadings        Json?    @db.Json
+  exclusions      String[] @default([])
+  waitingPeriods  Json?    @map("waiting_periods") @db.Json
+
+  validFrom   DateTime  @map("valid_from") @db.Timestamptz
+  validUntil  DateTime  @map("valid_until") @db.Timestamptz
+  sentAt      DateTime? @map("sent_at") @db.Timestamptz
+  acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz
+  declinedAt  DateTime? @map("declined_at") @db.Timestamptz
+  declineReason String? @map("decline_reason")
+  pdfUrl      String?   @map("pdf_url")
+
+  createdBy String    @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id])
+  client Client         @relation(fields: [clientId], references: [id])
+  fna    NeedsAnalysis? @relation(fields: [fnaId], references: [id])
+  policy Policy?
+
+  @@unique([tenantId, quoteNumber])
+  @@index([tenantId, clientId])
+  @@map("quotes")
+}
+
+model Policy {
+  id       String  @id @default(uuid()) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  clientId String  @map("client_id") @db.Uuid
+  agentId  String  @map("agent_id") @db.Uuid
+  quoteId  String? @unique @map("quote_id") @db.Uuid
+
+  policyNumber     String          @map("policy_number") @db.VarChar(50)
+  status           PolicyStatus    @default(draft)
+  productCategory  ProductCategory @map("product_category")
+  productName      String          @map("product_name") @db.VarChar(200)
+  insurerName      String          @map("insurer_name") @db.VarChar(200)
+  insurerPolicyRef String?         @map("insurer_policy_ref") @db.VarChar(100)
+
+  sumAssured       Decimal          @map("sum_assured") @db.Decimal(15, 2)
+  monthlyPremium   Decimal          @map("monthly_premium") @db.Decimal(15, 2)
+  annualPremium    Decimal?         @map("annual_premium") @db.Decimal(15, 2)
+  premiumFrequency PremiumFrequency @default(monthly) @map("premium_frequency")
+  collectionMethod CollectionMethod @default(debit_order) @map("collection_method")
+  escalationRate   Decimal?         @map("escalation_rate") @db.Decimal(5, 4)
+  loadingAmount    Decimal?         @map("loading_amount") @db.Decimal(15, 2)
+
+  inceptionDate    DateTime  @map("inception_date") @db.Date
+  expiryDate       DateTime? @map("expiry_date") @db.Date
+  lapseDate        DateTime? @map("lapse_date") @db.Date
+  cancellationDate DateTime? @map("cancellation_date") @db.Date
+  cancellationReason String? @map("cancellation_reason")
+
+  initialCommissionPct Decimal?  @map("initial_commission_pct") @db.Decimal(5, 4)
+  renewalCommissionPct Decimal?  @map("renewal_commission_pct") @db.Decimal(5, 4)
+  clawbackWatchUntil   DateTime? @map("clawback_watch_until") @db.Date
+
+  policyScheduleUrl String? @map("policy_schedule_url")
+
+  createdBy String    @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  client      Client             @relation(fields: [clientId], references: [id])
+  quote       Quote?             @relation(fields: [quoteId], references: [id])
+  roas        Roa[]
+  claims      Claim[]
+  commissions CommissionRecord[]
+  documents   Document[]
+
+  @@unique([tenantId, policyNumber])
+  @@index([tenantId, clientId])
+  @@index([tenantId, agentId])
+  @@index([tenantId, status])
+  @@map("policies")
+}
+
+// ─── ROA ─────────────────────────────────────────────────────────────────────
+
+model Roa {
+  id       String  @id @default(uuid()) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  clientId String  @map("client_id") @db.Uuid
+  agentId  String  @map("agent_id") @db.Uuid
+  policyId String? @map("policy_id") @db.Uuid
+
+  status  RoaStatus @default(draft)
+  roaType String    @map("roa_type") @db.VarChar(30)
+
+  clientNeeds            Json? @map("client_needs")
+  recommendations        Json? @map("recommendations")
+  disclosures            Json? @map("disclosures")
+  alternativesConsidered Json? @map("alternatives_considered")
+
+  roaDate         DateTime  @map("roa_date") @db.Date
+  clientSignedAt  DateTime? @map("client_signed_at") @db.Timestamptz
+  agentSignedAt   DateTime? @map("agent_signed_at") @db.Timestamptz
+  filedAt         DateTime? @map("filed_at") @db.Timestamptz
+
+  clientSignatureUrl String? @map("client_signature_url")
+  agentSignatureUrl  String? @map("agent_signature_url")
+  pdfUrl             String? @map("pdf_url")
+  pdfHash            String? @map("pdf_hash") @db.VarChar(64)
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  client Client  @relation(fields: [clientId], references: [id])
+  policy Policy? @relation(fields: [policyId], references: [id])
+
+  @@index([tenantId, clientId])
+  @@index([tenantId, status])
+  @@map("roas")
+}
+
+// ─── Claims ──────────────────────────────────────────────────────────────────
+
+model Claim {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+  policyId String @map("policy_id") @db.Uuid
+  agentId  String @map("agent_id") @db.Uuid
+
+  claimNumber  String      @map("claim_number") @db.VarChar(50)
+  claimType    ClaimType   @map("claim_type")
+  status       ClaimStatus @default(filed)
+
+  eventDate        DateTime @map("event_date") @db.Date
+  eventDescription String   @map("event_description")
+  claimAmount      Decimal? @map("claim_amount") @db.Decimal(15, 2)
+  approvedAmount   Decimal? @map("approved_amount") @db.Decimal(15, 2)
+  paidAmount       Decimal? @map("paid_amount") @db.Decimal(15, 2)
+  paidAt           DateTime? @map("paid_at") @db.Timestamptz
+
+  repudiationReason    String?   @map("repudiation_reason")
+  ombudEscalatedAt     DateTime? @map("ombud_escalated_at") @db.Timestamptz
+  ombudReferenceNumber String?   @map("ombud_reference_number") @db.VarChar(50)
+
+  insurerClaimRef String? @map("insurer_claim_ref") @db.VarChar(100)
+  insurerAssessor String? @map("insurer_assessor") @db.VarChar(200)
+
+  filedAt    DateTime  @default(now()) @map("filed_at") @db.Timestamptz
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz
+
+  createdBy String    @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  client    Client     @relation(fields: [clientId], references: [id])
+  policy    Policy     @relation(fields: [policyId], references: [id])
+  documents Document[]
+
+  @@unique([tenantId, claimNumber])
+  @@index([tenantId, clientId])
+  @@index([tenantId, status])
+  @@map("claims")
+}
+
+// ─── Documents ───────────────────────────────────────────────────────────────
+
+model Document {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+
+  clientId String? @map("client_id") @db.Uuid
+  agentId  String? @map("agent_id") @db.Uuid
+  policyId String? @map("policy_id") @db.Uuid
+  claimId  String? @map("claim_id") @db.Uuid
+
+  category    DocumentCategory
+  filename    String           @db.VarChar(500)
+  contentType String           @map("content_type") @db.VarChar(100)
+  sizeBytes   Int              @map("size_bytes")
+  r2Key       String           @map("r2_key") @db.VarChar(500)
+  r2Url       String?          @map("r2_url") @db.VarChar(1000)
+  sha256      String?          @db.VarChar(64)
+
+  retentionUntil DateTime? @map("retention_until") @db.Date
+  isArchived     Boolean   @default(false) @map("is_archived")
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz
+
+  uploadedBy String    @map("uploaded_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  client Client? @relation(fields: [clientId], references: [id])
+  policy Policy? @relation(fields: [policyId], references: [id])
+  claim  Claim?  @relation(fields: [claimId], references: [id])
+
+  @@index([tenantId, clientId])
+  @@index([tenantId, category])
+  @@map("documents")
+}
+
+// ─── Commissions ─────────────────────────────────────────────────────────────
+
+model CommissionRecord {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  policyId String @map("policy_id") @db.Uuid
+  agentId  String @map("agent_id") @db.Uuid
+
+  commissionType CommissionType @map("commission_type")
+  grossAmount    Decimal        @map("gross_amount") @db.Decimal(15, 2)
+  vatAmount      Decimal        @default(0) @map("vat_amount") @db.Decimal(15, 2)
+  netAmount      Decimal        @map("net_amount") @db.Decimal(15, 2)
+  commissionRate Decimal?       @map("commission_rate") @db.Decimal(5, 4)
+
+  isClawback    Boolean  @default(false) @map("is_clawback")
+  clawbackPct   Decimal? @map("clawback_pct") @db.Decimal(5, 4)
+  clawbackOfId  String?  @map("clawback_of_id") @db.Uuid
+  clawbackReason String? @map("clawback_reason")
+
+  statementDate DateTime  @map("statement_date") @db.Date
+  paymentDate   DateTime? @map("payment_date") @db.Date
+  paidToBankRef String?   @map("paid_to_bank_ref") @db.VarChar(100)
+  memo          String?   @db.VarChar(500)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  policy Policy @relation(fields: [policyId], references: [id])
+
+  @@index([tenantId, agentId])
+  @@index([tenantId, statementDate])
+  @@map("commission_records")
+}
+
+// ─── CRM ─────────────────────────────────────────────────────────────────────
+
+model CrmActivity {
+  id       String  @id @default(uuid()) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  agentId  String  @map("agent_id") @db.Uuid
+  clientId String? @map("client_id") @db.Uuid
+  leadId   String? @map("lead_id") @db.Uuid
+
+  activityType CrmActivityType @map("activity_type")
+  subject      String          @db.VarChar(300)
+  note         String?
+  outcome      String?         @db.VarChar(200)
+  durationMins Int?            @map("duration_mins")
+  scheduledAt  DateTime?       @map("scheduled_at") @db.Timestamptz
+  completedAt  DateTime?       @map("completed_at") @db.Timestamptz
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  client Client? @relation(fields: [clientId], references: [id])
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+
+  @@index([tenantId, agentId])
+  @@index([tenantId, clientId])
+  @@map("crm_activities")
+}
+
+// ─── Accounting ──────────────────────────────────────────────────────────────
+
+model Account {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+
+  code        String      @db.VarChar(20)
+  name        String      @db.VarChar(200)
+  accountType AccountType @map("account_type")
+  vatCategory VatCategory @default(standard_rated) @map("vat_category")
+  isActive    Boolean     @default(true) @map("is_active")
+  parentId    String?     @map("parent_id") @db.Uuid
+  description String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  parent       Account?      @relation("AccountParent", fields: [parentId], references: [id])
+  children     Account[]     @relation("AccountParent")
+  journalLines JournalLine[]
+  invoiceLines InvoiceLine[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("accounts")
+}
+
+model JournalEntry {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+
+  reference   String   @db.VarChar(50)
+  entryDate   DateTime @map("entry_date") @db.Date
+  description String
+  isReversing Boolean  @default(false) @map("is_reversing")
+  reversesId  String?  @map("reverses_id") @db.Uuid
+  postedAt    DateTime? @map("posted_at") @db.Timestamptz
+  postedBy    String?   @map("posted_by") @db.Uuid
+
+  totalDebit  Decimal @default(0) @map("total_debit") @db.Decimal(15, 2)
+  totalCredit Decimal @default(0) @map("total_credit") @db.Decimal(15, 2)
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  lines JournalLine[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId, entryDate])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id             String @id @default(uuid()) @db.Uuid
+  journalEntryId String @map("journal_entry_id") @db.Uuid
+  accountId      String @map("account_id") @db.Uuid
+  tenantId       String @map("tenant_id") @db.Uuid
+
+  debit       Decimal @default(0) @db.Decimal(15, 2)
+  credit      Decimal @default(0) @db.Decimal(15, 2)
+  description String? @db.VarChar(500)
+
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      Account      @relation(fields: [accountId], references: [id])
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@map("journal_lines")
+}
+
+model Invoice {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+
+  invoiceNumber String        @map("invoice_number") @db.VarChar(30)
+  status        InvoiceStatus @default(draft)
+
+  partyType  String  @map("party_type") @db.VarChar(20)
+  partyName  String  @map("party_name") @db.VarChar(200)
+  partyVatNo String? @map("party_vat_no") @db.VarChar(10)
+  partyEmail String? @map("party_email") @db.VarChar(255)
+
+  issueDate  DateTime  @map("issue_date") @db.Date
+  dueDate    DateTime  @map("due_date") @db.Date
+  paidDate   DateTime? @map("paid_date") @db.Date
+
+  subtotal    Decimal @db.Decimal(15, 2)
+  vatAmount   Decimal @map("vat_amount") @db.Decimal(15, 2)
+  totalAmount Decimal @map("total_amount") @db.Decimal(15, 2)
+  amountPaid  Decimal @default(0) @map("amount_paid") @db.Decimal(15, 2)
+  balance     Decimal @db.Decimal(15, 2)
+
+  notes  String?
+  pdfUrl String? @map("pdf_url")
+
+  createdBy String    @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id])
+  lines  InvoiceLine[]
+
+  @@unique([tenantId, invoiceNumber])
+  @@index([tenantId, status])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id        String  @id @default(uuid()) @db.Uuid
+  invoiceId String  @map("invoice_id") @db.Uuid
+  accountId String? @map("account_id") @db.Uuid
+
+  description String      @db.VarChar(500)
+  quantity    Decimal     @default(1) @db.Decimal(10, 3)
+  unitPrice   Decimal     @map("unit_price") @db.Decimal(15, 2)
+  vatCategory VatCategory @default(standard_rated) @map("vat_category")
+  vatRate     Decimal     @default(0.15) @map("vat_rate") @db.Decimal(5, 4)
+  vatAmount   Decimal     @map("vat_amount") @db.Decimal(15, 2)
+  lineTotal   Decimal     @map("line_total") @db.Decimal(15, 2)
+
+  invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id])
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}

@@ -1,0 +1,292 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+   InsureConsultec — Global Styles + Glassmorphism Design System
+   Tailwind CSS v4 CSS-first configuration
+   ============================================================================ */
+
+@theme {
+  /* ── Fonts ─────────────────────────────────────────────────────────────── */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* ── Brand colours ──────────────────────────────────────────────────────── */
+  --color-brand-50:  #f0effe;
+  --color-brand-100: #e0defe;
+  --color-brand-200: #c4bcfc;
+  --color-brand-300: #a593fa;
+  --color-brand-400: #8b6ef8;
+  --color-brand-500: #7c3aed;  /* primary violet */
+  --color-brand-600: #6d28d9;
+  --color-brand-700: #5b21b6;
+  --color-brand-800: #4c1d95;
+  --color-brand-900: #3b0764;
+  --color-brand-950: #2e0057;
+
+  --color-accent-400: #818cf8;  /* indigo-400 */
+  --color-accent-500: #6366f1;  /* indigo-500 */
+  --color-accent-600: #4f46e5;  /* indigo-600 */
+
+  /* ── Glass surface tokens ──────────────────────────────────────────────── */
+  --glass-bg:              rgba(255, 255, 255, 0.055);
+  --glass-bg-hover:        rgba(255, 255, 255, 0.085);
+  --glass-bg-active:       rgba(255, 255, 255, 0.10);
+  --glass-border:          rgba(255, 255, 255, 0.09);
+  --glass-border-strong:   rgba(255, 255, 255, 0.15);
+  --glass-shadow:          0 8px 32px rgba(0, 0, 0, 0.45);
+  --glass-shadow-lg:       0 24px 64px rgba(0, 0, 0, 0.55);
+  --glass-blur:            blur(20px);
+  --glass-blur-sm:         blur(12px);
+  --glass-blur-lg:         blur(32px);
+
+  /* ── App background gradient ───────────────────────────────────────────── */
+  --bg-app: radial-gradient(
+      ellipse 80% 60% at 20% 10%,
+      rgba(109, 40, 217, 0.18) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 80% 90%,
+      rgba(79, 70, 229, 0.14) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 50% 50%,
+      rgba(30, 10, 60, 0.4) 0%,
+      transparent 70%
+    ),
+    linear-gradient(
+      160deg,
+      #0a0a14 0%,
+      #0d0d1f 40%,
+      #0b0b18 70%,
+      #09090f 100%
+    );
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --color-text-primary:   rgba(255, 255, 255, 0.95);
+  --color-text-secondary: rgba(255, 255, 255, 0.65);
+  --color-text-muted:     rgba(255, 255, 255, 0.38);
+  --color-text-accent:    #a78bfa; /* violet-400 */
+
+  /* ── Status colours ────────────────────────────────────────────────────── */
+  --color-success:  #4ade80;
+  --color-warning:  #fbbf24;
+  --color-danger:   #f87171;
+  --color-info:     #60a5fa;
+
+  /* ── Border radius ─────────────────────────────────────────────────────── */
+  --radius-card:    1rem;       /* 16px */
+  --radius-modal:   1.25rem;    /* 20px */
+  --radius-input:   0.625rem;   /* 10px */
+  --radius-button:  0.5rem;     /* 8px */
+  --radius-badge:   9999px;
+}
+
+/* ============================================================================
+   Base reset & body
+   ============================================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-app);
+  background-attachment: fixed;
+  min-height: 100svh;
+  color: var(--color-text-primary);
+  overflow-x: hidden;
+}
+
+/* ============================================================================
+   Scrollbar styling
+   ============================================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ============================================================================
+   Selection
+   ============================================================================ */
+
+::selection {
+  background: rgba(124, 58, 237, 0.4);
+  color: white;
+}
+
+/* ============================================================================
+   Glass utility classes
+   ============================================================================ */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-sm {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-lg {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg);
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
+  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.glass-card:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-strong);
+}
+
+/* Inset glow effect for active/selected items */
+.glass-active {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(124, 58, 237, 0.2) inset,
+    0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================================
+   Brand gradient utilities
+   ============================================================================ */
+
+.gradient-brand {
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+}
+
+.gradient-brand-soft {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(99, 102, 241, 0.2) 100%);
+}
+
+.text-gradient-brand {
+  background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============================================================================
+   Glow effects
+   ============================================================================ */
+
+.glow-brand {
+  box-shadow: 0 0 24px rgba(124, 58, 237, 0.35), 0 0 48px rgba(124, 58, 237, 0.15);
+}
+
+.glow-brand-sm {
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.25);
+}
+
+/* ============================================================================
+   Input overrides for glass style
+   (Used via cn() in component layer)
+   ============================================================================ */
+
+.input-glass {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-input);
+  color: var(--color-text-primary);
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.input-glass::placeholder {
+  color: var(--color-text-muted);
+}
+
+.input-glass:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+/* ============================================================================
+   Focus-visible ring
+   ============================================================================ */
+
+*:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.7);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================================
+   Page transition
+   ============================================================================ */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: fade-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ============================================================================
+   Skeleton loading shimmer
+   ============================================================================ */
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}

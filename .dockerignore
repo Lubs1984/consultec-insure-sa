@@ -1,0 +1,30 @@
+# ── .dockerignore ────────────────────────────────────────────────────────────
+# Prevents large/sensitive directories from being sent to Docker build context.
+# Keep this in sync with .gitignore.
+
+# Dependencies (will be installed fresh inside image)
+node_modules/
+**/node_modules/
+
+# Build outputs (will be generated inside image)
+**/dist/
+**/.turbo/
+
+# Environment files — NEVER copy secrets into images
+.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local dev tooling
+docker-compose.yml
+docker-compose.local.yml
+
+# Editor + OS
+.DS_Store
+.vscode/
+*.log
+
+# Git
+.git/
+.gitignore

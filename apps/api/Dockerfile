@@ -6,8 +6,8 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# openssl required by Prisma engine binaries
-RUN corepack enable pnpm && apk add --no-cache openssl
+# openssl required by Prisma engine binaries; pin pnpm version to match lockfile
+RUN apk add --no-cache openssl && npm install -g pnpm@10.30.1 --quiet
 
 # Copy everything (fast layer cache — .dockerignore excludes node_modules, .env)
 COPY . .

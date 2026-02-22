@@ -60,9 +60,12 @@ async function start() {
   // Connect to PostgreSQL before accepting requests
   await connectDatabase();
 
+  // Railway injects PORT; fall back to API_PORT for local dev
+  const port = parseInt(process.env.PORT ?? String(config.API_PORT), 10);
+
   try {
-    await app.listen({ port: config.API_PORT, host: '0.0.0.0' });
-    app.log.info(`🚀 InsureConsultec API listening on port ${config.API_PORT}`);
+    await app.listen({ port, host: '0.0.0.0' });
+    app.log.info(`🚀 InsureConsultec API listening on port ${port}`);
     app.log.info(`   Environment: ${config.NODE_ENV}`);
     app.log.info(`   API URL: ${config.API_URL}`);
   } catch (err) {

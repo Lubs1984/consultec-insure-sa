@@ -14,6 +14,7 @@ import { healthRoutes } from './http/routes/health/health.routes.js';
 import { authRoutes } from './http/routes/auth/auth.routes.js';
 import { clientRoutes } from './http/routes/clients/client.routes.js';
 import { leadRoutes } from './http/routes/leads/lead.routes.js';
+import { policyRoutes } from './http/routes/policies/policy.routes.js';
 
 // Infrastructure
 import { connectDatabase, disconnectDatabase } from './infrastructure/database/prisma/prisma.client.js';
@@ -53,7 +54,8 @@ export async function buildServer() {
   await app.register(healthRoutes);
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
   await app.register(clientRoutes, { prefix: '/api/v1/clients' });
-  await app.register(leadRoutes,   { prefix: '/api/v1/leads' });
+  await app.register(leadRoutes,    { prefix: '/api/v1/leads' });
+  await app.register(policyRoutes,  { prefix: '/api/v1/policies' });
 
   return app;
 }

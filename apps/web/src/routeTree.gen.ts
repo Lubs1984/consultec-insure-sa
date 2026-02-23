@@ -15,9 +15,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PublicRegisterRouteImport } from './routes/_public/register'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
+import { Route as AuthPoliciesRouteImport } from './routes/_auth/policies'
 import { Route as AuthLeadsRouteImport } from './routes/_auth/leads'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as AuthClientsRouteImport } from './routes/_auth/clients'
+import { Route as AuthPoliciesIdRouteImport } from './routes/_auth/policies.$id'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -47,6 +49,11 @@ const PublicForgotPasswordRoute = PublicForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => PublicRoute,
 } as any)
+const AuthPoliciesRoute = AuthPoliciesRouteImport.update({
+  id: '/policies',
+  path: '/policies',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthLeadsRoute = AuthLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -62,24 +69,33 @@ const AuthClientsRoute = AuthClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthPoliciesIdRoute = AuthPoliciesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthPoliciesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients': typeof AuthClientsRoute
   '/dashboard': typeof AuthDashboardRoute
   '/leads': typeof AuthLeadsRoute
+  '/policies': typeof AuthPoliciesRouteWithChildren
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/register': typeof PublicRegisterRoute
+  '/policies/$id': typeof AuthPoliciesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clients': typeof AuthClientsRoute
   '/dashboard': typeof AuthDashboardRoute
   '/leads': typeof AuthLeadsRoute
+  '/policies': typeof AuthPoliciesRouteWithChildren
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/register': typeof PublicRegisterRoute
+  '/policies/$id': typeof AuthPoliciesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,9 +105,11 @@ export interface FileRoutesById {
   '/_auth/clients': typeof AuthClientsRoute
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/leads': typeof AuthLeadsRoute
+  '/_auth/policies': typeof AuthPoliciesRouteWithChildren
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/register': typeof PublicRegisterRoute
+  '/_auth/policies/$id': typeof AuthPoliciesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,18 +118,22 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/leads'
+    | '/policies'
     | '/forgot-password'
     | '/login'
     | '/register'
+    | '/policies/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/clients'
     | '/dashboard'
     | '/leads'
+    | '/policies'
     | '/forgot-password'
     | '/login'
     | '/register'
+    | '/policies/$id'
   id:
     | '__root__'
     | '/'
@@ -120,9 +142,11 @@ export interface FileRouteTypes {
     | '/_auth/clients'
     | '/_auth/dashboard'
     | '/_auth/leads'
+    | '/_auth/policies'
     | '/_public/forgot-password'
     | '/_public/login'
     | '/_public/register'
+    | '/_auth/policies/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -175,6 +199,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicForgotPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_auth/policies': {
+      id: '/_auth/policies'
+      path: '/policies'
+      fullPath: '/policies'
+      preLoaderRoute: typeof AuthPoliciesRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/leads': {
       id: '/_auth/leads'
       path: '/leads'
@@ -196,19 +227,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthClientsRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/policies/$id': {
+      id: '/_auth/policies/$id'
+      path: '/$id'
+      fullPath: '/policies/$id'
+      preLoaderRoute: typeof AuthPoliciesIdRouteImport
+      parentRoute: typeof AuthPoliciesRoute
+    }
   }
 }
+
+interface AuthPoliciesRouteChildren {
+  AuthPoliciesIdRoute: typeof AuthPoliciesIdRoute
+}
+
+const AuthPoliciesRouteChildren: AuthPoliciesRouteChildren = {
+  AuthPoliciesIdRoute: AuthPoliciesIdRoute,
+}
+
+const AuthPoliciesRouteWithChildren = AuthPoliciesRoute._addFileChildren(
+  AuthPoliciesRouteChildren,
+)
 
 interface AuthRouteChildren {
   AuthClientsRoute: typeof AuthClientsRoute
   AuthDashboardRoute: typeof AuthDashboardRoute
   AuthLeadsRoute: typeof AuthLeadsRoute
+  AuthPoliciesRoute: typeof AuthPoliciesRouteWithChildren
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthClientsRoute: AuthClientsRoute,
   AuthDashboardRoute: AuthDashboardRoute,
   AuthLeadsRoute: AuthLeadsRoute,
+  AuthPoliciesRoute: AuthPoliciesRouteWithChildren,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

@@ -12,21 +12,23 @@ import {
   UnauthenticatedError,
   ForbiddenError,
 } from '../../http/plugins/error-handler.plugin.js';
-import { UserRole, TenantStatus } from '@insureconsultec/shared';
+import { UserRole, TenantStatus, FspCategory } from '@insureconsultec/shared';
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
 
 export interface RegisterTenantDto {
-  // Tenant fields
-  companyName: string;
-  slug: string;            // URL-safe tenant identifier
+  // Tenant / FSP fields (matches shared RegisterTenantSchema)
+  fspName: string;
+  slug: string;
   fspNumber?: string;
+  fspCategory?: FspCategory;
+  vatNumber?: string;
   // Owner fields
   firstName: string;
   lastName: string;
   email: string;
   password: string;
-  phone?: string;
+  mobile?: string;
 }
 
 export interface LoginDto {
@@ -94,12 +96,15 @@ export class AuthService {
     const { tenant, user } = await prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
         data: {
-          companyName: dto.companyName,
+          name: dto.fspName,
           slug: dto.slug,
-          fspNumber: dto.fspNumber ?? null,
-          status: TenantStatus.TRIAL,
-          fspCategory: [] as string[],
-          authorisedProducts: [] as string[],
+          fscaLicenceNumber: dto.fspNumber ?? null,
+          fspCategory: (dto.fspCategory as any) ?? 'I',
+          vatNumber: dto.vatNumber ?? null,
+          email: dto.email.toLowerCase(),
+          status: 'trialing' as any,
+          subscriptionStatus: 'trialing',
+          subscriptionPlan: 'starter',
         },
       });
 
@@ -110,8 +115,8 @@ export class AuthService {
           passwordHash,
           firstName: dto.firstName,
           lastName: dto.lastName,
-          phone: dto.phone ?? null,
-          role: UserRole.OWNER,
+          phone: dto.mobile ?? null,
+          role: UserRole.FSP_OWNER as any,
           isActive: true,
           isMfaEnabled: false,
           createdBy: 'system',
@@ -256,7 +261,7 @@ export class AuthService {
 
   private _buildAuthUser(
     user: { id: string; email: string; firstName: string; lastName: string; role: string },
-    tenant: { id: string; companyName: string; slug: string; status: string },
+    tenant: { id: string; name: string; slug: string; status: string },
   ): AuthUser {
     return {
       id: user.id,
@@ -267,7 +272,7 @@ export class AuthService {
       tenantId: tenant.id,
       tenant: {
         id: tenant.id,
-        companyName: tenant.companyName,
+        companyName: tenant.name,
         slug: tenant.slug,
         status: tenant.status as TenantStatus,
       },

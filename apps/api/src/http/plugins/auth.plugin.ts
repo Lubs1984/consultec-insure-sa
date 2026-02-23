@@ -3,6 +3,7 @@ import cookie from '@fastify/cookie';
 import jwt from '@fastify/jwt';
 import { config } from '../../config/config.js';
 import type { JwtPayload } from '@insureconsultec/shared';
+import { UserRole } from '@insureconsultec/shared';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -53,3 +54,26 @@ export async function requireAuth(request: Parameters<typeof request.jwtVerify>[
     });
   }
 }
+
+/**
+ * requireRole hook — must be used AFTER requireAuth.
+ * Returns a preHandler function that enforces RBAC.
+ *
+ * Usage:
+ *   app.get('/admin', { preHandler: [requireAuth, requireRole(UserRole.SUPER_ADMIN)] }, handler)
+ */
+export function requireRole(...roles: UserRole[]) {
+  return async function roleGuard(request: any, reply: any) {
+    const role = request.userRole as UserRole;
+    if (!roles.includes(role)) {
+      return reply.status(403).send({
+        error: {
+          code: 'FORBIDDEN',
+          message: `Access denied. Required role(s): ${roles.join(', ')}`,
+          requestId: request.id,
+        },
+      });
+    }
+  };
+}
+

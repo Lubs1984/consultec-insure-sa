@@ -92,7 +92,7 @@ export async function authRoutes(app: FastifyInstance) {
 
   /** POST /register-tenant */
   app.post('/register-tenant', async (request, reply) => {
-    const body = RegisterTenantBody.parse(request.body);
+    const body = RegisterTenantSchema.parse(request.body);
     const authUser = await authService.registerTenant(body);
     const response = await issueTokens(app, authUser, reply, request);
     return reply.status(201).send(response);

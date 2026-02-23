@@ -45,7 +45,7 @@ function PublicLayout() {
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-lg">
         <Outlet />
       </div>
     </div>

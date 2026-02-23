@@ -15,7 +15,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PublicRegisterRouteImport } from './routes/_public/register'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
+import { Route as AuthLeadsRouteImport } from './routes/_auth/leads'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
+import { Route as AuthClientsRouteImport } from './routes/_auth/clients'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -45,22 +47,36 @@ const PublicForgotPasswordRoute = PublicForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => PublicRoute,
 } as any)
+const AuthLeadsRoute = AuthLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthDashboardRoute = AuthDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthClientsRoute = AuthClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/clients': typeof AuthClientsRoute
   '/dashboard': typeof AuthDashboardRoute
+  '/leads': typeof AuthLeadsRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/register': typeof PublicRegisterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/clients': typeof AuthClientsRoute
   '/dashboard': typeof AuthDashboardRoute
+  '/leads': typeof AuthLeadsRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/register': typeof PublicRegisterRoute
@@ -70,22 +86,40 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
+  '/_auth/clients': typeof AuthClientsRoute
   '/_auth/dashboard': typeof AuthDashboardRoute
+  '/_auth/leads': typeof AuthLeadsRoute
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/register': typeof PublicRegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/forgot-password' | '/login' | '/register'
+  fullPaths:
+    | '/'
+    | '/clients'
+    | '/dashboard'
+    | '/leads'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/forgot-password' | '/login' | '/register'
+  to:
+    | '/'
+    | '/clients'
+    | '/dashboard'
+    | '/leads'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
   id:
     | '__root__'
     | '/'
     | '/_auth'
     | '/_public'
+    | '/_auth/clients'
     | '/_auth/dashboard'
+    | '/_auth/leads'
     | '/_public/forgot-password'
     | '/_public/login'
     | '/_public/register'
@@ -141,6 +175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicForgotPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_auth/leads': {
+      id: '/_auth/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof AuthLeadsRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/dashboard': {
       id: '/_auth/dashboard'
       path: '/dashboard'
@@ -148,15 +189,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDashboardRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/clients': {
+      id: '/_auth/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AuthClientsRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
 interface AuthRouteChildren {
+  AuthClientsRoute: typeof AuthClientsRoute
   AuthDashboardRoute: typeof AuthDashboardRoute
+  AuthLeadsRoute: typeof AuthLeadsRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthClientsRoute: AuthClientsRoute,
   AuthDashboardRoute: AuthDashboardRoute,
+  AuthLeadsRoute: AuthLeadsRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
